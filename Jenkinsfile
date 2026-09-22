@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -8,6 +7,7 @@ pipeline {
             steps {
                 sh 'python3 --version'
                 sh 'git --version'
+                sh 'docker --version'
             }
         }
 
@@ -17,9 +17,21 @@ pipeline {
             }
         }
 
+        stage('Build Docker') {
+            steps {
+                sh 'docker build -t projet-devops:jenkins .'
+            }
+        }
+
+        stage('Test Docker') {
+            steps {
+                sh 'docker run --rm projet-devops:jenkins'
+            }
+        }
+
         stage('Fin') {
             steps {
-                echo 'Pipeline CI/CD terminée avec succès !'
+                echo 'CI/CD Docker terminée avec succès !'
             }
         }
     }
