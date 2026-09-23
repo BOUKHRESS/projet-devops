@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+        APP_PORT = '5001'
+        PROM_PORT = '9091'
+        GRAFANA_PORT = '3001'
+    }
+
     stages {
 
         stage('Verification') {
@@ -8,6 +14,7 @@ pipeline {
                 sh 'python3 --version'
                 sh 'git --version'
                 sh 'docker --version'
+                sh 'docker compose version'
             }
         }
 
@@ -17,38 +24,41 @@ pipeline {
             }
         }
 
-        stage('Build Docker') {
+        stage('Docker Compose') {
             steps {
-                sh 'docker build -t projet-devops:jenkins .'
+                sh '''
+                    docker compose down -v || true
+                    docker compose up -d --build
+                '''
             }
         }
 
-        stage('Test Docker') {
+        stage('Test Application') {
             steps {
                 sh '''
-                    docker rm -f python-app-ci >/dev/null 2>&1 || true
+                    sleep 10
 
-                    docker run -d \
-                      --name python-app-ci \
-                      projet-devops:jenkins
+                    docker compose ps
 
-                    sleep 3
+                    docker compose exec -T python-app python3 -c \
+                    "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:5000/').read().decode())"
 
-                    docker exec python-app-ci python3 -c \
-                      "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:5000/').read().decode())"
-
-                    docker exec python-app-ci python3 -c \
-                      "import urllib.request; data=urllib.request.urlopen('http://127.0.0.1:5000/metrics').read().decode(); print(data); assert 'app_requests_total' in data"
-
-                    docker rm -f python-app-ci
+                    docker compose exec -T python-app python3 -c \
+                    "import urllib.request; data=urllib.request.urlopen('http://127.0.0.1:5000/metrics').read().decode(); print(data); assert 'app_requests_total' in data"
                 '''
             }
         }
 
         stage('Fin') {
             steps {
-                echo 'CI/CD Flask + Docker + Prometheus terminée avec succès !'
+                echo 'CI/CD Jenkins + Docker Compose terminé avec succès !'
             }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker compose down -v || true'
         }
     }
 }
