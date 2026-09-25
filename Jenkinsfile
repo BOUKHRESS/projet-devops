@@ -24,14 +24,22 @@ pipeline {
             }
         }
 
-        stage('Docker Compose') {
-            steps {
-                sh '''
-                    docker compose down -v || true
-                    docker compose up -d --build
-                '''
-            }
-        }
+stage('Docker Compose') {
+    steps {
+        sh '''
+            export APP_PORT=5001
+            export PROM_PORT=9091
+            export GRAFANA_PORT=3001
+
+            echo "APP_PORT=$APP_PORT"
+            echo "PROM_PORT=$PROM_PORT"
+            echo "GRAFANA_PORT=$GRAFANA_PORT"
+
+            docker compose down -v || true
+            docker compose up -d --build
+        '''
+    }
+}
 
         stage('Test Application') {
             steps {
