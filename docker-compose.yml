@@ -9,11 +9,11 @@ services:
     restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:latest
+    build:
+      context: ./prometheus
+      dockerfile: Dockerfile
     ports:
       - "${PROM_PORT:-9090}:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     restart: unless-stopped
     depends_on:
       - python-app
